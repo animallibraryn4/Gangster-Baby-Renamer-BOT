@@ -1,14 +1,14 @@
-from helper.utils import progress_for_pyrogram, convert  
-from pyrogram import Client, filters  
-from pyrogram.types import (InlineKeyboardButton, InlineKeyboardMarkup, ForceReply)  
-from hachoir.metadata import extractMetadata  
-from hachoir.parser import createParser  
-from helper.database import db  
-import os   
-import humanize  
-from PIL import Image  
-import time  
-import logging  
+import logging
+import os
+import time
+from pyrogram import Client, filters
+from pyrogram.types import ForceReply
+from helper.utils import progress_for_pyrogram, convert
+from hachoir.metadata import extractMetadata
+from hachoir.parser import createParser
+from helper.database import db
+import humanize
+from PIL import Image
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,13 +38,16 @@ async def doc(bot, update):
         await update.message.edit("❌ Error: Invalid file name format.")
         return
 
-    file_path = f"downloads/{new_filename}"  
+    # Use absolute path
+    file_path = os.path.join(os.getcwd(), 'downloads', new_filename)  
     file = update.message.reply_to_message  
     ms = await update.message.edit("⚠️__**Please wait...**__\n__Downloading file to my server...__")  
     c_time = time.time()  
 
     try:  
-        path = await bot.download_media(message=file, progress=progress_for_pyrogram, progress_args=("\n⚠️__**Please wait...**__\n\n😈 **Hack in progress...**", ms, c_time))  
+        logging.info(f"Downloading file: {file.file_id}")
+        path = await bot.download_media(message=file, progress=progress_for_pyrogram, progress_args=("Downloading file...", ms, c_time))  
+        logging.info(f"File downloaded at {path}")
     except Exception as e:  
         await ms.edit(f"❌ Error during download: {e}")  
         return  
@@ -53,20 +56,21 @@ async def doc(bot, update):
         await ms.edit("❌ Error: File download failed.")
         return
 
+    # Rename file
     splitpath = path.split("/downloads/")
     dow_file_name = os.path.basename(path)  
     old_file_name = path  
-    logging.info(f"Renaming file from {old_file_name} to {file_path}")  # Debugging log
-    os.rename(old_file_name, file_path)  
+    logging.info(f"Renaming file from {old_file_name} to {file_path}")
+    os.rename(old_file_name, file_path)
 
     if not os.path.exists(file_path):
         await ms.edit("❌ Error: Renamed file not found!")
         return
 
     logging.info(f"File renamed successfully: {file_path}")
-
     os.chmod(file_path, 0o777)  # Set permissions
 
+    # Metadata extraction
     duration = 0  
     try:  
         metadata = extractMetadata(createParser(file_path))  
@@ -104,11 +108,8 @@ async def doc(bot, update):
     c_time = time.time()  
 
     try:  
-        logging.info(f"Sending file: {file_path}")  # Debugging log
+        logging.info(f"Sending file: {file_path}")
         if type == "document":  
-            if not os.path.exists(file_path):
-                await ms.edit("❌ Error: File not found for upload.")
-                return
             await bot.send_document(  
                 update.message.chat.id,  
                 document=file_path,  
@@ -117,9 +118,6 @@ async def doc(bot, update):
                 progress=progress_for_pyrogram,  
                 progress_args=("⚠️__**Please wait...**__\n__Processing file upload....__", ms, c_time))  
         elif type == "video":   
-            if not os.path.exists(file_path):
-                await ms.edit("❌ Error: File not found for upload.")
-                return
             await bot.send_video(  
                 update.message.chat.id,  
                 video=file_path,  
@@ -129,9 +127,6 @@ async def doc(bot, update):
                 progress=progress_for_pyrogram,  
                 progress_args=("⚠️__**Please wait...**__\n__Processing file upload....__", ms, c_time))  
         elif type == "audio":   
-            if not os.path.exists(file_path):
-                await ms.edit("❌ Error: File not found for upload.")
-                return
             await bot.send_audio(  
                 update.message.chat.id,  
                 audio=file_path,  
@@ -144,10 +139,4 @@ async def doc(bot, update):
         await ms.edit(f"❌ Error during upload: {e}")   
         os.remove(file_path)  
         if ph_path:  
-            os.remove(ph_path)  
-        return  
-
-    await ms.delete()  
-    os.remove(file_path)  
-    if ph_path:  
-        os.remove(ph_path)
+            os.remove
