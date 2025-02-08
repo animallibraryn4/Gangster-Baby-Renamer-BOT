@@ -8,7 +8,7 @@ import os
 import humanize  
 from PIL import Image  
 import time  
-import logging  # Add logging for debugging
+import logging  
 
 logging.basicConfig(level=logging.INFO)
 
@@ -56,14 +56,14 @@ async def doc(bot, update):
     splitpath = path.split("/downloads/")
     dow_file_name = os.path.basename(path)  
     old_file_name = path  
+    logging.info(f"Renaming file from {old_file_name} to {file_path}")  # Debugging log
     os.rename(old_file_name, file_path)  
 
-    logging.info(f"Original file path: {old_file_name}")
-    logging.info(f"Renamed file path: {file_path}")
-    
     if not os.path.exists(file_path):
-        await ms.edit("❌ Error: File renaming failed.")
+        await ms.edit("❌ Error: Renamed file not found!")
         return
+
+    logging.info(f"File renamed successfully: {file_path}")
 
     os.chmod(file_path, 0o777)  # Set permissions
 
@@ -104,6 +104,7 @@ async def doc(bot, update):
     c_time = time.time()  
 
     try:  
+        logging.info(f"Sending file: {file_path}")  # Debugging log
         if type == "document":  
             if not os.path.exists(file_path):
                 await ms.edit("❌ Error: File not found for upload.")
