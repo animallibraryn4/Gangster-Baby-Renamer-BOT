@@ -8,6 +8,9 @@ import os
 import humanize  
 from PIL import Image  
 import time  
+import logging  # Add logging for debugging
+
+logging.basicConfig(level=logging.INFO)
 
 @Client.on_callback_query(filters.regex('cancel'))  
 async def cancel(bot, update):  
@@ -54,6 +57,16 @@ async def doc(bot, update):
     dow_file_name = os.path.basename(path)  
     old_file_name = path  
     os.rename(old_file_name, file_path)  
+
+    logging.info(f"Original file path: {old_file_name}")
+    logging.info(f"Renamed file path: {file_path}")
+    
+    if not os.path.exists(file_path):
+        await ms.edit("❌ Error: File renaming failed.")
+        return
+
+    os.chmod(file_path, 0o777)  # Set permissions
+
     duration = 0  
     try:  
         metadata = extractMetadata(createParser(file_path))  
@@ -92,6 +105,9 @@ async def doc(bot, update):
 
     try:  
         if type == "document":  
+            if not os.path.exists(file_path):
+                await ms.edit("❌ Error: File not found for upload.")
+                return
             await bot.send_document(  
                 update.message.chat.id,  
                 document=file_path,  
@@ -100,6 +116,9 @@ async def doc(bot, update):
                 progress=progress_for_pyrogram,  
                 progress_args=("⚠️__**Please wait...**__\n__Processing file upload....__", ms, c_time))  
         elif type == "video":   
+            if not os.path.exists(file_path):
+                await ms.edit("❌ Error: File not found for upload.")
+                return
             await bot.send_video(  
                 update.message.chat.id,  
                 video=file_path,  
@@ -109,6 +128,9 @@ async def doc(bot, update):
                 progress=progress_for_pyrogram,  
                 progress_args=("⚠️__**Please wait...**__\n__Processing file upload....__", ms, c_time))  
         elif type == "audio":   
+            if not os.path.exists(file_path):
+                await ms.edit("❌ Error: File not found for upload.")
+                return
             await bot.send_audio(  
                 update.message.chat.id,  
                 audio=file_path,  
